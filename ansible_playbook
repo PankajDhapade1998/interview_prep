@@ -1,0 +1,54 @@
+---
+- name: Install and configure Nginx on multi-OS web servers
+  hosts: webservers
+  become: true
+  vars:
+    custom_message: "Welcome to DevOps Team"
+
+  tasks:
+
+    - name: Install Nginx on Debian/Ubuntu
+      apt:
+        name: nginx
+        state: present
+        update_cache: true
+      when: ansible_os_family == "Debian"
+      notify: Restart Nginx
+
+    - name: Install Nginx on RedHat/CentOS
+      yum:
+        name: nginx
+        state: present
+      when: ansible_os_family == "RedHat"
+      notify: Restart Nginx
+
+    - name: Create custom index.html for Debian-based systems
+      copy:
+        dest: /var/www/html/index.html
+        content: "{{ custom_message }}"
+        owner: www-data
+        group: www-data
+        mode: '0644'
+      when: ansible_os_family == "Debian"
+      notify: Restart Nginx
+
+    - name: Create custom index.html for RedHat-based systems
+      copy:
+        dest: /usr/share/nginx/html/index.html
+        content: "{{ custom_message }}"
+        owner: nginx
+        group: nginx
+        mode: '0644'
+      when: ansible_os_family == "RedHat"
+      notify: Restart Nginx
+
+    - name: Ensure Nginx is enabled to start on boot
+      service:
+        name: nginx
+        enabled: true
+---
+handlers:
+  - name: Restart Nginx
+    service:
+      name: nginx
+      state: restarted
